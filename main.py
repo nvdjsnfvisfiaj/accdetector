@@ -9,8 +9,8 @@ api_hash = 'a3be2584a77447cfc0c7d1595076e9dc'
 phone_number = '+923559486166'
 
 # ID каналов
-source_channel_id = -1002355660075
-target_channel_id = -1002464185343
+source_channel_id = -1002452764624
+target_channel_id = -1002212238461
 source_channel_id_2 = -1002335869892
 target_channel_id_2 = -1002283473746
 
