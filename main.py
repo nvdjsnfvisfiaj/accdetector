@@ -9,66 +9,102 @@ api_hash = 'a3be2584a77447cfc0c7d1595076e9dc'
 phone_number = '+923559486166'
 
 # ID каналов
-source_channel_id = -1002452764624
-target_channel_id = -1002212238461
-source_channel_id_2 = -1002335869892
-target_channel_id_2 = -1002283473746
+source_channel_id = -1002454039581  # ID исходного канала (1)
+target_channel_id = -1002212238461  # ID целевого канала (1)
+source_channel_id_2 = -1002335869892  # ID исходного канала (2)
+target_channel_id_2 = -1002283473746  # ID целевого канала (2)
+source_channel_id_3 = -1002485605769 # ID исходного канала (3) для NFT улучшений
+target_channel_id_3 = -1002212238461  # ID целевого канала (3) для NFT улучшений
+
+# Имя пользователя для отправки сообщений
+username = '@asteroalex'
 
 # Создание клиента
 client = TelegramClient('session_name', api_id, api_hash)
+
+# Функция для отправки периодических сообщений
+async def periodic_messages():
+    while True:
+        try:
+            await client.send_message(username, "Привет, работаю")
+        except ValueError:
+            print(f"Пользователь {username} недоступен. Проверьте, что он взаимодействовал с ботом.")
+        await asyncio.sleep(1800)  # 900 секунд = 15 минут
+
+# Функция для отправки сообщения при запуске
+async def send_startup_message():
+    try:
+        await client.send_message(username, "Запущено успешно!")
+    except ValueError:
+        print(f"Пользователь {username} недоступен. Проверьте, что он взаимодействовал с ботом.")
 
 # Функция для форматирования supply
 def format_supply(supply):
     supply = int(supply)
     if supply >= 1000:
-        supply = f"{supply // 1000}k"
-    return supply
+        return f"{supply // 1000}k"
+    return str(supply)
 
+# Обработка сообщений из первого исходного канала
 @client.on(events.NewMessage(chats=source_channel_id))
 async def handler(event):
     message = event.message.message
-    gift_id = ""
 
-    if "A new limited gift has appeared" in message:
-        price = ""
-        supply = ""
-        
-        # Извлечение значений из сообщения
-        for line in message.split('\n'):
-            if "№" in line:
-                gift_id = re.search(r'\((.*?)\)', line).group(1)
-            if "Price:" in line:
-                price = line.split(': ')[1].split(' ')[0]
-            if "Total amount:" in line:
-                supply = format_supply(line.split(': ')[1].replace(',', ''))
-
-        # Формирование нового сообщения для лимитированных подарков
-        new_message = f"⬆️ <b>New gift! Новый подарок!</b>\n\nPrice: <code>{price}</code>★ (<b>limited:</b> {supply} gifts only)\n\n<b>@TGGiftsNews • @InsiderDurova</b>"
-        
+    # Проверяем, содержит ли сообщение слово "LIMITED"
+    if "LIMITED" in message:
         try:
-            await client.send_message(target_channel_id, new_message, buttons=[
-                [Button.inline("Copy Gift ID", data=gift_id)]
-            ], parse_mode='html')
+            # Извлечение значений price и supply
+            price_match = re.search(r"Price: (\d+)", message)
+            supply_match = re.search(r"LIMITED \((\d+)\)", message)
+
+            if price_match and supply_match:
+                price = price_match.group(1)  # Извлекаем значение price
+                supply = format_supply(supply_match.group(1))  # Извлекаем и форматируем supply
+
+                # Формирование нового сообщения для лимитированных подарков
+                new_message = (
+                    f"⬆️ <b>New gift! Новый подарок!</b>\n\n"
+                    f"Price: <code>{price}</code>★ (<b>limited:</b> {supply} gifts only)\n\n"
+                    f"<b>🎁 <a href='https://t.me/AutoGiftRobot?start=_tgr_D7aIRUlmM2Yy'>@AutoGiftRobot</a> • @TGGiftsNews</b>\n"
+                    f"<b>🌸 <a href='https://t.me/tonnel_network_bot/gifts?startapp=ref_1267171169'>Купить/продать подарки</a></b>"
+                )
+
+                # Отправка сообщения в целевой канал без предпросмотра ссылок
+                await client.send_message(
+                    target_channel_id,
+                    new_message,
+                    buttons=[[Button.inline("Copy Gift ID", data="N/A")]],
+                    parse_mode='html',
+                    link_preview=False  # Отключение предпросмотра ссылок
+                )
         except ChannelPrivateError:
             print("Failed to send message: Bot lacks permission to access the target channel.")
 
-    elif "A new gift has appeared" in message:
-        price = ""
-        
-        # Извлечение значения цены из сообщения
-        for line in message.split('\n'):
-            if "№" in line:
-                gift_id = re.search(r'\((.*?)\)', line).group(1)
-            if "Price:" in line:
-                price = line.split(': ')[1].split(' ')[0]
-
-        # Формирование нового сообщения для нелимитированных подарков
-        new_message = f"⬆️ <b>New gift! Новый подарок!</b>\n\nPrice: <code>{price}</code>★ (non-limited)"
-
+    # Проверяем на нелимитированные подарки (не содержит "LIMITED", но содержит "Price:")
+    elif "Price:" in message and "LIMITED" not in message:
         try:
-            await client.send_message(target_channel_id, new_message, buttons=[
-                [Button.inline("Copy Gift ID", data=gift_id)]
-            ], parse_mode='html')
+            # Извлечение значения price
+            price_match = re.search(r"Price: (\d+)", message)
+
+            if price_match:
+                price = price_match.group(1)  # Извлекаем значение price
+
+                # Формирование нового сообщения для нелимитированных подарков
+                new_message = (
+                    f"⬆️ <b>New gift! Новый подарок!</b>\n\n"
+                    f"Price: <code>{price}</code>★\n\n"
+                    f"<b>🎁 <a href='https://t.me/AutoGiftRobot?start=_tgr_D7aIRUlmM2Yy'>@AutoGiftRobot</a> • @TGGiftsNews</b>\n"
+                    f"<b>🌸 <a href='https://t.me/tonnel_network_bot/gifts?startapp=ref_1267171169'>Купить/продать подарки</a></b>"
+                )
+
+                # Отправка сообщения в целевой канал без предпросмотра ссылок
+                await client.send_message(
+                    target_channel_id,
+                    new_message,
+                    buttons=[[Button.inline("Copy Gift ID", data="N/A")]],
+                    parse_mode='html',
+                    link_preview=False  # Отключение предпросмотра ссылок
+                )
         except ChannelPrivateError:
             print("Failed to send message: Bot lacks permission to access the target channel.")
 
@@ -79,11 +115,7 @@ async def handler(event):
         except ChannelPrivateError:
             print("Failed to send sticker: Bot lacks permission to access the target channel.")
 
-@client.on(events.CallbackQuery)
-async def callback_query_handler(event):
-    data = event.data.decode('utf-8')
-    await event.answer(f"Gift ID: {data}", alert=True)
-
+# Обработка сообщений из второго исходного канала
 @client.on(events.NewMessage(chats=source_channel_id_2))
 async def handler_2(event):
     message = event.message.message
@@ -106,17 +138,47 @@ async def handler_2(event):
         except ChannelPrivateError:
             print("Failed to send sticker: Bot lacks permission to access the target channel.")
 
-async def restart_client():
-    while True:
-        await asyncio.sleep(600)  # 10 минут
-        if not client.is_connected():
-            await client.connect()
-            print("Client Reconnected")
+# Обработка сообщений из третьего исходного канала для NFT улучшений
+@client.on(events.NewMessage(chats=source_channel_id_3))
+async def handler_3(event):
+    message = event.message.message
 
+    # Проверка на наличие строки "NFT upgrade available"
+    if "NFT upgrade available" in message:
+        try:
+            # Формирование нового сообщения для NFT улучшений
+            new_message = (
+                f"🆕 <b>New NFT upgrades! Доступны новые улучшения!</b>\n\n"
+                f"<code>Подарки которые получили NFT скины будут показаны здесь через пару секунд</code>\n\n"
+                f"<b>🎁 <a href='https://t.me/AutoGiftRobot?start=_tgr_D7aIRUlmM2Yy'>@AutoGiftRobot</a> • @TGGiftsNews</b>\n"
+                f"<b>🌸 <a href='https://t.me/tonnel_network_bot/gifts?startapp=ref_1267171169'>Купить/продать подарки</a></b>"
+            )
+
+            # Отправка сообщения в целевой канал без предпросмотра ссылок
+            await client.send_message(
+                target_channel_id_3,
+                new_message,
+                parse_mode='html',
+                link_preview=False  # Отключение предпросмотра ссылок
+            )
+        except ChannelPrivateError:
+            print("Failed to send message: Bot lacks permission to access the target channel.")
+
+# Обработка кнопок
+@client.on(events.CallbackQuery)
+async def callback_query_handler(event):
+    data = event.data.decode('utf-8')
+    await event.answer(f"Gift ID: {data}", alert=True)
+
+# Основная функция
 async def main():
     await client.start(phone=phone_number)
     print("Client Created")
-    asyncio.create_task(restart_client())
+    # Отправка сообщения при запуске
+    await send_startup_message()
+    # Запуск периодических сообщений
+    asyncio.create_task(periodic_messages())
+    # Ожидание завершения работы клиента
     await client.run_until_disconnected()
 
 if __name__ == '__main__':
