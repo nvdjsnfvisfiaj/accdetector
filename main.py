@@ -144,7 +144,7 @@ async def handler_3(event):
     message = event.message.message
 
     # Проверка на наличие строки "NFT upgrade available"
-    if "NFT upgrade available" in message:
+    if "upgrade available" in message:
         try:
             # Формирование нового сообщения для NFT улучшений
             new_message = (
