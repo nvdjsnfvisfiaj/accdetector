@@ -13,7 +13,7 @@ source_channel_id = -1002454039581  # ID исходного канала (1)
 target_channel_id = -1002212238461  # ID целевого канала (1)
 source_channel_id_2 = -1002335869892  # ID исходного канала (2)
 target_channel_id_2 = -1002283473746  # ID целевого канала (2)
-source_channel_id_3 = -1002485605769 # ID исходного канала (3) для NFT улучшений
+source_channel_id_3 = --1002417640134 # ID исходного канала (3) для NFT улучшений
 target_channel_id_3 = -1002212238461  # ID целевого канала (3) для NFT улучшений
 
 # Имя пользователя для отправки сообщений
@@ -144,7 +144,7 @@ async def handler_3(event):
     message = event.message.message
 
     # Проверка на наличие строки "NFT upgrade available"
-    if "upgrade available" in message:
+    if "NFT upgrades are available!" in message:
         try:
             # Формирование нового сообщения для NFT улучшений
             new_message = (
